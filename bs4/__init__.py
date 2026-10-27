@@ -91,6 +91,7 @@ from .formatter import Formatter
 from .filter import (
     ElementFilter,
     SoupStrainer,
+    SoupReplacer
 )
 from typing import (
     Any,
@@ -214,6 +215,7 @@ class BeautifulSoup(Tag):
         parse_only: Optional[SoupStrainer] = None,
         from_encoding: Optional[_Encoding] = None,
         exclude_encodings: Optional[_Encodings] = None,
+        replacer: Optional[SoupReplacer] = None,
         element_classes: Optional[Dict[Type[PageElement], Type[PageElement]]] = None,
         **kwargs: Any,
     ):
@@ -254,6 +256,9 @@ class BeautifulSoup(Tag):
          like to be instantiated instead as the parse tree is
          built. This is useful for subclassing Tag or NavigableString
          to modify default behavior.
+
+        :param replacer: A SoupReplacer. If supplied, replaces tag 
+         names matching og_tag into alt_tag while parsing. 
 
         :param kwargs: For backwards compatibility purposes, the
          constructor accepts certain keyword arguments used in
@@ -435,6 +440,7 @@ class BeautifulSoup(Tag):
         self.known_xml = self.is_xml
         self._namespaces = dict()
         self.parse_only = parse_only
+        self.replacer = replacer
 
         if hasattr(markup, "read"):  # It's a file-type object.
             markup = markup.read()
@@ -804,6 +810,11 @@ class BeautifulSoup(Tag):
         # print("Pop", tag.name)
         if self.tagStack:
             self.currentTag = self.tagStack[-1]
+
+        # Apply any tag name replacements if supplied. 
+        if self.replacer:
+            self.replacer.replace(tag)
+
         return self.currentTag
 
     def pushTag(self, tag: Tag) -> None:
