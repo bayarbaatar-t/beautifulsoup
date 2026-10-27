@@ -703,3 +703,4 @@ class SoupReplacer():
         """
         if tag.name == self.og_tag:
             tag.name = self.alt_tag
+            
