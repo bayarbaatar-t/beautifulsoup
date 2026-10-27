@@ -19,3 +19,18 @@
 | `Tag.name` | M1 Task 6 — renamed tags | [bs4/element.py](../../bs4/element.py) | 1648 |
 | `Tag.attrs` | M1 Task 7 — modified attributes | [bs4/element.py](../../bs4/element.py) | 1674 |
 | `parse_only` | M2 Tasks 2–4 — selective parsing | [bs4/__init__.py](../../bs4/__init__.py) | 214 |
+
+## SoupReplacer Implementation -- Part 3
+### How to Use
+1. `from bs4 import BeautifulSoup, SoupReplacer`
+2. `BeautifulSoup(... , replacer=SoupReplacer("old_tag", "new_tag"))`  
+    Now you have a parsed BeatifulSoup object where any old tag has been renamed to new tag.
+
+### Integration
+- My approach was to avoid touching the tag while it's being processed, to avoid messing with any start and end tag matching logic.
+- Therefore I chose `popTag()` within `bs4/__init__.py`, because this is where tag processing is finished and get popped from its `tagStack`.
+- The actual class is implemented within `bs4/filter.py`, right below `SoupStrainer`.
+
+### Testing and Application
+- Two automated tests have been added to `bs4/tests/test_replacer.py`
+- Task 6's single-pass version was implemented using SoupReplacer. It can be found at `apps/m2/task6.py`.
