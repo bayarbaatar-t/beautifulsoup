@@ -680,3 +680,26 @@ class SoupStrainer(ElementFilter):
         :meta private:
         """
         return element if self.match(element) else None
+
+class SoupReplacer():
+    """
+    Allows BeautifulSoup to replace any og_tag with alt_tag if found, while parsing.
+
+    :param og_tag: Tag name to replace.
+    :param alt_tag: New tag name to replace with.
+    """
+    og_tag: str
+    alt_tag: str
+
+    def __init__(self, og_tag: str, alt_tag: str):
+        self.og_tag = og_tag.strip()
+        self.alt_tag = alt_tag.strip()
+
+    def replace(self, tag: Tag) -> None:
+        """
+        Replaces the name of tag with self.alt_tag if the original name matches self.og_tag.
+
+        :param tag: Tag to potentially rename.
+        """
+        if tag.name == self.og_tag:
+            tag.name = self.alt_tag
