@@ -27,6 +27,7 @@ from bs4.element import (
 from bs4._typing import (
     _AtMostOneElement,
     _AttributeValue,
+    _AttributeValues,
     _OneElement,
     _PageElementMatchFunction,
     _QueryResults,
@@ -683,24 +684,71 @@ class SoupStrainer(ElementFilter):
 
 class SoupReplacer():
     """
-    Allows BeautifulSoup to replace any og_tag with alt_tag if found, while parsing.
+    Allows BeautifulSoup to transform tags while parsing.
+
+    IMPORTANT: Only two use cases are supported:
+    - Replace a tag name with a new name. Supply og_tag and alt_tag.
+    - Tranform the tag using provided functions. 
+        Supply at least one of name_xformer, attrs_xformer, or xformer, to be executed in that order.
 
     :param og_tag: Tag name to replace.
     :param alt_tag: New tag name to replace with.
+    :param name_xformer: Function to transform the name of the tag.
+    :param attrs_xformer: Function to transform the attributes of the tag.
+    :param xformer: Function to transform any content of the tag in-place, so beware of side effects.
     """
-    og_tag: str
-    alt_tag: str
+    og_tag: str | None
+    alt_tag: str | None
+    name_xformer: Callable[[Tag], str] | None
+    attrs_xformer: Callable[[Tag], _AttributeValues] | None
+    xformer: Callable[[Tag], None] | None
 
-    def __init__(self, og_tag: str, alt_tag: str):
-        self.og_tag = og_tag.strip()
-        self.alt_tag = alt_tag.strip()
+    def __init__(
+                self, 
+        og_tag: str | None = None, 
+        alt_tag: str | None = None, 
+        *, 
+        name_xformer: Callable[[Tag], str] | None = None, 
+        attrs_xformer: Callable[[Tag], _AttributeValues] | None = None, 
+        xformer: Callable[[Tag], None] | None = None):
+
+        # Validate the arguments
+        if og_tag is None and alt_tag is None:
+            if name_xformer is None and attrs_xformer is None and xformer is None:
+                # No arguments supplied, so no transformation will be performed.
+                raise ValueError("Either og_tag + alt_tag, or at least one of name_xformer + attr_xformer + xformer must be supplied, but not both.")
+        elif og_tag is not None and alt_tag is not None:
+            if name_xformer is not None or attrs_xformer is not None or xformer is not None:
+                # Two conflicting use cases supplied.
+                raise ValueError("Either og_tag + alt_tag, or at least one of name_xformer + attr_xformer + xformer must be supplied, but not both.")
+        else:
+            # Only one of og_tag or alt_tag is supplied.
+            raise ValueError("Either og_tag + alt_tag, or at least one of name_xformer + attr_xformer + xformer must be supplied, but not both.")
+
+        self.og_tag = og_tag.strip() if og_tag is not None else None
+        self.alt_tag = alt_tag.strip() if alt_tag is not None else None
+        self.name_xformer = name_xformer
+        self.attrs_xformer = attrs_xformer
+        self.xformer = xformer
 
     def replace(self, tag: Tag) -> None:
         """
-        Replaces the name of tag with self.alt_tag if the original name matches self.og_tag.
+        Replaces the name of tag with self.alt_tag if the original name matches self.og_tag, 
+        or transforms the tag using self.name_xformer, self.attrs_xformer, or self.xformer.
 
-        :param tag: Tag to potentially rename.
+        USE CASES:
+        1. Replace all tags with og_tag to alt_tag.
+        2. Transform the tag using the provided functions, in the order: name_xformer -> attrs_xformer -> xformer
+
+        :param tag: Tag to potentially transform.
         """
-        if tag.name == self.og_tag:
-            tag.name = self.alt_tag
-            
+        if self.og_tag is not None and self.alt_tag is not None:
+            if tag.name == self.og_tag:
+                tag.name = self.alt_tag
+        else:
+            if self.name_xformer is not None:
+                tag.name = self.name_xformer(tag)
+            if self.attrs_xformer is not None:
+                tag.attrs = self.attrs_xformer(tag)
+            if self.xformer is not None:
+                self.xformer(tag)
