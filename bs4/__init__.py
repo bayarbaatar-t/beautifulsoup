@@ -537,6 +537,10 @@ class BeautifulSoup(Tag):
         self.reset()
         self._feed()
 
+    def __iter__(self) -> Iterator[PageElement]:
+        """Lazily iterate over all nodes in the document."""
+        return self.descendants
+
     @classmethod
     @_deprecated(
         replaced_by="nothing (private method, will be removed)", version="4.13.0"
